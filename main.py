@@ -45,11 +45,11 @@ class WebScraper(unittest.TestCase):
         self.driver.get("http://comics.panini.it/calendario/uscite-prossime-settimane/")
         self.parse_planet_manga(self.driver)
 
-    def X_test_star(self):
+    def test_star(self):
         self.driver.get("https://www.starcomics.com/UsciteMensili.aspx")
         self.parse_starcomics(self.driver)
 
-    def X_test_jpop(self):
+    def test_jpop(self):
         self.driver.get('http://www.j-pop.it/blog/category/2-ultime-uscite')
         self.parse_jpop_news(self.driver)
         self.driver.get('http://www.j-pop.it/nuovi-prodotti')
