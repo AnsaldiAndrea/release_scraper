@@ -37,33 +37,29 @@ class WebScraper(unittest.TestCase):
         self.driver = webdriver.PhantomJS(service_args=['--load-images=no'])
         self.data = []
 
-    def X_test_planet(self):
-        driver = self.driver
+    def test_planet(self):
         # this week releases
-        driver.get("http://comics.panini.it/calendario/uscite-questa-settimana/")
-        self.parse_planet_manga(driver)
+        self.driver.get("http://comics.panini.it/calendario/uscite-questa-settimana/")
+        self.parse_planet_manga(self.driver)
         # next week releases
-        driver.get("http://comics.panini.it/calendario/uscite-prossime-settimane/")
-        self.parse_planet_manga(driver)
+        self.driver.get("http://comics.panini.it/calendario/uscite-prossime-settimane/")
+        self.parse_planet_manga(self.driver)
 
     def X_test_star(self):
-        driver = self.driver
-        driver.get("https://www.starcomics.com/UsciteMensili.aspx")
-        self.parse_starcomics(driver)
+        self.driver.get("https://www.starcomics.com/UsciteMensili.aspx")
+        self.parse_starcomics(self.driver)
 
-    def test_jpop(self):
-        driver = self.driver
-        #driver.get('http://www.j-pop.it/blog/category/2-ultime-uscite')
-        #self.parse_jpop_news(driver)
-        driver.get('http://www.j-pop.it/nuovi-prodotti')
-        path = self.parse_jpop(driver)
+    def X_test_jpop(self):
+        self.driver.get('http://www.j-pop.it/blog/category/2-ultime-uscite')
+        self.parse_jpop_news(self.driver)
+        self.driver.get('http://www.j-pop.it/nuovi-prodotti')
+        path = self.parse_jpop(self.driver)
         while path:
-            print(path)
-            driver.get(path)
-            path=self.parse_jpop(driver)
-        print(tabulate(self.data))
+            self.driver.get(path)
+            path=self.parse_jpop(self.driver)
 
     def tearDown(self):
+        print(tabulate(self.data))
         self.driver.quit()
 
     def parse_planet_manga(self,driver):
@@ -92,7 +88,6 @@ class WebScraper(unittest.TestCase):
             item_values.append(element.xpath(priceX)[0].strip())
             item_values.append(element.xpath(coverX)[0])
             self.data.append(item_values)
-        print(tabulate(self.data))
 
     def parse_starcomics(self,driver):
         month_list = []
@@ -152,8 +147,6 @@ class WebScraper(unittest.TestCase):
             next_month.click()
             wWait(driver, 10).until(EC.staleness_of(month))
 
-        pp.pprint(self.data)
-
     def parse_jpop_news(self,driver):
         news = wait_for_elements(driver,'//div[@id="post_list"]/ul/li/div/h3/a[contains(text(),"Uscite") or contains(text(),"uscite")]')
         if(len(news)==0):
@@ -196,8 +189,6 @@ class WebScraper(unittest.TestCase):
                 item_values.append('€ 0.00' if len(temp)==0 else temp[0])	# price
                 item_values.append('')			# cover
                 self.data.append(item_values)
-
-        print(tabulate(self.data))
 
     def parse_jpop(self,driver):
         itemsX = '//div[@id="products_wrapper"]/ul/li/div/div/div[@class="view-content"]'
