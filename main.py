@@ -10,8 +10,7 @@ import locale
 import datetime
 import re
 from tabulate import tabulate
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+import pygsheets
 
 pp = pprint.PrettyPrinter()
 
@@ -42,9 +41,9 @@ class WebScraper():
     def setUp(self):
         self.driver = webdriver.PhantomJS(service_args=['--load-images=no'])
         self.data = []
-        scope = ['https://spreadsheets.google.com/feeds']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
-        client = gspread.authorize(creds)
+        #scope = ['https://spreadsheets.google.com/feeds']
+        #creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
+        client = pygsheets.authorize(service_file='client_secret.json',no_cache=True)
 
         # Find a workbook by name and open the first sheet
         # Make sure you use the right name here.
@@ -73,13 +72,20 @@ class WebScraper():
 
     def tearDown(self):
         #print(tabulate(self.data))
-        sheet = self.mainsheet.worksheet('releases')
+        self.driver.quit()
+        print('updating sheet')
+        sheet = self.mainsheet.worksheet(property='title', value='releases')
+        sheet.resize(len(self.data)-1,5)
+        sheet.clear()
+        sheet.insert_rows(row=0,values=self.data)
+        sheet.sync()
+        '''
         i=0
         for x in self.data:
             print("insert_row {}".format(i))
             i+=1
             sheet.insert_row(x)
-        self.driver.quit()
+        '''
 
     def parse_planet_manga(self,driver):
         mangaFilterXpath = '//*[@id="c31384"]/a'
