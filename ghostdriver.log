@@ -1,0 +1,27 @@
+[INFO  - 2017-10-04T19:09:51.588Z] GhostDriver - Main - running on port 50266
+[INFO  - 2017-10-04T19:09:52.715Z] Session [99d10fc0-a937-11e7-956c-672e2fa64e29] - page.settings - {"XSSAuditingEnabled":false,"javascriptCanCloseWindows":true,"javascriptCanOpenWindows":true,"javascriptEnabled":true,"loadImages":false,"localToRemoteUrlAccessEnabled":false,"userAgent":"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/538.1 (KHTML, like Gecko) PhantomJS/2.1.1 Safari/538.1","webSecurityEnabled":true}
+[INFO  - 2017-10-04T19:09:52.715Z] Session [99d10fc0-a937-11e7-956c-672e2fa64e29] - page.customHeaders:  - {}
+[INFO  - 2017-10-04T19:09:52.716Z] Session [99d10fc0-a937-11e7-956c-672e2fa64e29] - Session.negotiatedCapabilities - {"browserName":"phantomjs","version":"2.1.1","driverName":"ghostdriver","driverVersion":"1.2.0","platform":"windows-10-32bit","javascriptEnabled":true,"takesScreenshot":true,"handlesAlerts":false,"databaseEnabled":false,"locationContextEnabled":false,"applicationCacheEnabled":false,"browserConnectionEnabled":false,"cssSelectorsEnabled":true,"webStorageEnabled":false,"rotatable":false,"acceptSslCerts":false,"nativeEvents":true,"proxy":{"proxyType":"direct"}}
+[INFO  - 2017-10-04T19:09:52.716Z] SessionManagerReqHand - _postNewSessionCommand - New Session Created: 99d10fc0-a937-11e7-956c-672e2fa64e29
+[ERROR - 2017-10-04T19:09:54.074Z] Session [99d10fc0-a937-11e7-956c-672e2fa64e29] - page.onError - msg: TypeError: null is not an object (evaluating '$('#keq_loadingDiv').hide')
+
+  phantomjs://platform/console++.js:263 in error
+[ERROR - 2017-10-04T19:09:54.075Z] Session [99d10fc0-a937-11e7-956c-672e2fa64e29] - page.onError - stack:
+  (anonymous function) (http://comics.panini.it/typo3conf/ext/ke_questionnaire/Resources/Public/Script/Questionnaire.js?1450874740:3)
+  j (http://comics.panini.it/typo3conf/ext/ke_questionnaire/Resources/Public/Script/jquery-1.11.3.min.js?1450874740:2)
+  fireWith (http://comics.panini.it/typo3conf/ext/ke_questionnaire/Resources/Public/Script/jquery-1.11.3.min.js?1450874740:2)
+  ready (http://comics.panini.it/typo3conf/ext/ke_questionnaire/Resources/Public/Script/jquery-1.11.3.min.js?1450874740:2)
+  J (http://comics.panini.it/typo3conf/ext/ke_questionnaire/Resources/Public/Script/jquery-1.11.3.min.js?1450874740:2)
+
+  phantomjs://platform/console++.js:263 in error
+[ERROR - 2017-10-04T19:09:56.372Z] Session [99d10fc0-a937-11e7-956c-672e2fa64e29] - page.onError - msg: TypeError: null is not an object (evaluating '$('#keq_loadingDiv').hide')
+
+  phantomjs://platform/console++.js:263 in error
+[ERROR - 2017-10-04T19:09:56.372Z] Session [99d10fc0-a937-11e7-956c-672e2fa64e29] - page.onError - stack:
+  (anonymous function) (http://comics.panini.it/typo3conf/ext/ke_questionnaire/Resources/Public/Script/Questionnaire.js?1450874740:3)
+  j (http://comics.panini.it/typo3conf/ext/ke_questionnaire/Resources/Public/Script/jquery-1.11.3.min.js?1450874740:2)
+  fireWith (http://comics.panini.it/typo3conf/ext/ke_questionnaire/Resources/Public/Script/jquery-1.11.3.min.js?1450874740:2)
+  ready (http://comics.panini.it/typo3conf/ext/ke_questionnaire/Resources/Public/Script/jquery-1.11.3.min.js?1450874740:2)
+  J (http://comics.panini.it/typo3conf/ext/ke_questionnaire/Resources/Public/Script/jquery-1.11.3.min.js?1450874740:2)
+
+  phantomjs://platform/console++.js:263 in error

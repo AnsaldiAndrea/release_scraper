@@ -11,9 +11,6 @@ import datetime
 import re
 from tabulate import tabulate
 
-import unittest
-from platform import release
-
 pp = pprint.PrettyPrinter()
 
 month_dict = {
@@ -31,13 +28,20 @@ month_dict = {
     'dicembre':12
 }
 
-class WebScraper(unittest.TestCase):
+class WebScraper():
+
+    def main(self):
+        self.setUp()
+        self.planet()
+        self.star()
+        self.jpop()
+        self.tearDown()
 
     def setUp(self):
         self.driver = webdriver.PhantomJS(service_args=['--load-images=no'])
         self.data = []
 
-    def test_planet(self):
+    def planet(self):
         # this week releases
         self.driver.get("http://comics.panini.it/calendario/uscite-questa-settimana/")
         self.parse_planet_manga(self.driver)
@@ -45,11 +49,11 @@ class WebScraper(unittest.TestCase):
         self.driver.get("http://comics.panini.it/calendario/uscite-prossime-settimane/")
         self.parse_planet_manga(self.driver)
 
-    def test_star(self):
+    def star(self):
         self.driver.get("https://www.starcomics.com/UsciteMensili.aspx")
         self.parse_starcomics(self.driver)
 
-    def test_jpop(self):
+    def jpop(self):
         self.driver.get('http://www.j-pop.it/blog/category/2-ultime-uscite')
         self.parse_jpop_news(self.driver)
         self.driver.get('http://www.j-pop.it/nuovi-prodotti')
@@ -217,4 +221,4 @@ def wait_for_elements(driver,xpath):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    WebScraper().main()
