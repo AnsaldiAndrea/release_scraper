@@ -17,195 +17,213 @@ from platform import release
 pp = pprint.PrettyPrinter()
 
 month_dict = {
-	'gennaio':1,
-	'febbraio':2,
-	'marzo':3,
-	'aprile':4,
-	'maggio':5,
-	'giugno':6,
-	'luglio':7,
-	'agosto':8,
-	'settembre':9,
-	'ottobre':10,
-	'novembre':11,
-	'dicembre':12
+    'gennaio':1,
+    'febbraio':2,
+    'marzo':3,
+    'aprile':4,
+    'maggio':5,
+    'giugno':6,
+    'luglio':7,
+    'agosto':8,
+    'settembre':9,
+    'ottobre':10,
+    'novembre':11,
+    'dicembre':12
 }
 
 class WebScraper(unittest.TestCase):
 
-	def setUp(self):
-		self.driver = webdriver.PhantomJS(service_args=['--load-images=no'])
-		self.data = []
+    def setUp(self):
+        self.driver = webdriver.PhantomJS(service_args=['--load-images=no'])
+        self.data = []
 
-	def test_planet(self):
-		driver = self.driver
-		# this week releases
-		driver.get("http://comics.panini.it/calendario/uscite-questa-settimana/")
-		self.parse_planet_manga(driver)
-		# next week releases
-		driver.get("http://comics.panini.it/calendario/uscite-prossime-settimane/")
-		self.parse_planet_manga(driver)
+    def X_test_planet(self):
+        driver = self.driver
+        # this week releases
+        driver.get("http://comics.panini.it/calendario/uscite-questa-settimana/")
+        self.parse_planet_manga(driver)
+        # next week releases
+        driver.get("http://comics.panini.it/calendario/uscite-prossime-settimane/")
+        self.parse_planet_manga(driver)
 
-	def X_test_star(self):
-		driver = self.driver
-		driver.get("https://www.starcomics.com/UsciteMensili.aspx")
-		self.parse_starcomics(driver)
+    def X_test_star(self):
+        driver = self.driver
+        driver.get("https://www.starcomics.com/UsciteMensili.aspx")
+        self.parse_starcomics(driver)
 
-	def X_test_jpop(self):
-		driver = self.driver
-		driver.get('http://www.j-pop.it/blog/category/2-ultime-uscite')
-		self.parse_jpop_news(driver)
-		#driver.get('http://www.j-pop.it/nuovi-prodotti')
-		#self.parse_jpop(driver)
+    def test_jpop(self):
+        driver = self.driver
+        #driver.get('http://www.j-pop.it/blog/category/2-ultime-uscite')
+        #self.parse_jpop_news(driver)
+        driver.get('http://www.j-pop.it/nuovi-prodotti')
+        path = self.parse_jpop(driver)
+        while path:
+            print(path)
+            driver.get(path)
+            path=self.parse_jpop(driver)
+        print(tabulate(self.data))
 
-	def tearDown(self):
-		self.driver.quit()
+    def tearDown(self):
+        self.driver.quit()
 
-	def parse_planet_manga(self,driver):
-		mangaFilterXpath = '//*[@id="c31384"]/a'
-		mangaFilterElement = wait_for_element(driver,mangaFilterXpath)
-		mangaFilterElement.click()
-		wait_for_element(driver, '//*[@id="c31384"]/a[contains(@class,"active")]')
+    def parse_planet_manga(self,driver):
+        mangaFilterXpath = '//*[@id="c31384"]/a'
+        mangaFilterElement = wait_for_element(driver,mangaFilterXpath)
+        mangaFilterElement.click()
+        wait_for_element(driver, '//*[@id="c31384"]/a[contains(@class,"active")]')
 
-		itemsX = "//div[@class='row list-group-item' and not(contains(@style,'display: none;'))]/div"
-		titleX = "//h3[@class='product-name']/a/text()"
-		subTitleX = ".//small[@class='subtitle lightText']/text()"
-		releaseX = ".//span[@class='uscita itemValue']/text()"
-		priceX = ".//div[@class='old-price']/text()"
-		coverX = ".//a[@class='product-image']/img/@src"
+        itemsX = "//div[@class='row list-group-item' and not(contains(@style,'display: none;'))]/div"
+        titleX = "//h3[@class='product-name']/a/text()"
+        subTitleX = ".//small[@class='subtitle lightText']/text()"
+        releaseX = ".//span[@class='uscita itemValue']/text()"
+        priceX = ".//div[@class='old-price']/text()"
+        coverX = ".//a[@class='product-image']/img/@src"
 
-		items = wait_for_elements(driver,itemsX)
-		for item in items:
-			item_values = []
-			element = html.fromstring(item.get_attribute("innerHTML"))
-			item_values.append(element.xpath(titleX)[0].strip())
-			try:
-				item_values.append(element.xpath(subTitleX)[0].strip())
-			except Exception:
-				item_values.append('')
-			item_values.append(element.xpath(releaseX)[0])
-			item_values.append(element.xpath(priceX)[0].strip())
-			item_values.append(element.xpath(coverX)[0])
-			self.data.append(item_values)
-		print(tabulate(self.data))
+        items = wait_for_elements(driver,itemsX)
+        for item in items:
+            item_values = []
+            element = html.fromstring(item.get_attribute("innerHTML"))
+            item_values.append(element.xpath(titleX)[0].strip())
+            try:
+                item_values.append(element.xpath(subTitleX)[0].strip())
+            except Exception:
+                item_values.append('')
+            item_values.append(element.xpath(releaseX)[0])
+            item_values.append(element.xpath(priceX)[0].strip())
+            item_values.append(element.xpath(coverX)[0])
+            self.data.append(item_values)
+        print(tabulate(self.data))
 
-	def parse_starcomics(self,driver):
-		month_list = []
-		while True:
-			monthX = '//td[@class="pager-count"]/span'
-			# Get page month
-			month = wait_for_element(driver,monthX)
-			month_name = month.text
-			# If mont_list contains month stop otherwise add month to mont_list
-			if month_name in month_list:
-				# page has already been scraped
-				break
-			else:
-				month_list.append(month_name)
+    def parse_starcomics(self,driver):
+        month_list = []
+        while True:
+            monthX = '//td[@class="pager-count"]/span'
+            # Get page month
+            month = wait_for_element(driver,monthX)
+            month_name = month.text
+            # If mont_list contains month stop otherwise add month to mont_list
+            if month_name in month_list:
+            # page has already been scraped
+                break
+            else:
+                month_list.append(month_name)
+            # Get number of pages
+            pagerX = '(//tr[@class="rigagriglia"])[2]/td'
+            pager = wait_for_elements(driver, pagerX)
+            page_count = len(pager[3:])
+            #print(page_count)
 
-			# Get number of pages
-			pagerX = '(//tr[@class="rigagriglia"])[2]/td'
-			pager = wait_for_elements(driver, pagerX)
-			page_count = len(pager[3:])
-			#print(page_count)
+            itemsX = '//td[@itemprop="itemListElement"]'
+            for i in range(page_count):
+                # wait for page to load
+                i_page_activeX = '(//tr[@class="rigagriglia"])[2]/td[{}][@class="pager-item active"]'.format(i+3)
+                wait_for_element(driver,i_page_activeX)
 
-			itemsX = '//td[@itemprop="itemListElement"]'
-			for i in range(page_count):
-				# wait for page to load
-				i_page_activeX = '(//tr[@class="rigagriglia"])[2]/td[{}][@class="pager-item active"]'.format(i+3)
-				wait_for_element(driver,i_page_activeX)
+                items = wait_for_elements(driver,itemsX)
+                items = items[4:]
 
-				items = wait_for_elements(driver,itemsX)
-				items = items[4:]
+                titleX = '//h4[@class="title"]/@title'
+                releaseX = '//p/span/text()'
+                priceX = '//span[contains(@class,"price")]/span/text()'
+                coverX = '//div[@class="photo"]/a/img/@src'
 
-				titleX = '//h4[@class="title"]/@title'
-				releaseX = '//p/span/text()'
-				priceX = '//span[contains(@class,"price")]/span/text()'
-				coverX = '//div[@class="photo"]/a/img/@src'
+                #print('\n\tPage = {}'.format(i+1))
+                for item in items:
+                    item_values = []
+                    element = html.fromstring(item.get_attribute("innerHTML"))
 
-				#print('\n\tPage = {}'.format(i+1))
-				for item in items:
-					item_values = []
-					element = html.fromstring(item.get_attribute("innerHTML"))
+                    item_values.append(element.xpath(titleX)[0].strip())
+                    item_values.append('')
+                    item_values.append(element.xpath(releaseX)[0])
+                    item_values.append(element.xpath(priceX)[0])
+                    item_values.append(element.xpath(coverX)[0])
+                    self.data.append(item_values)
 
-					item_values.append(element.xpath(titleX)[0].strip())
-					item_values.append('')
-					item_values.append(element.xpath(releaseX)[0])
-					item_values.append(element.xpath(priceX)[0])
-					item_values.append(element.xpath(coverX)[0])
-					self.data.append(item_values)
+                next_pageX = '((//td[@class="pager-next"])[2]/a[1])'
+                next_page = wait_for_element(driver,next_pageX)
+                next_page.click()
 
-				next_pageX = '((//td[@class="pager-next"])[2]/a[1])'
-				next_page = wait_for_element(driver,next_pageX)
-				next_page.click()
+            # go back to first page
+            first_page = wait_for_element(driver,'(//tr[@class="rigagriglia"])[2]/td[2]/a[1]')
+            first_page.click()
+            wait_for_element(driver, '(//tr[@class="rigagriglia"])[2]/td[3][@class="pager-item active"]')
+            #go to next month
+            next_month = wait_for_element(driver,'(//td[@class="pager-next"]/a)[1]')
+            next_month.click()
+            wWait(driver, 10).until(EC.staleness_of(month))
 
-			# go back to first page
-			first_page = wait_for_element(driver,'(//tr[@class="rigagriglia"])[2]/td[2]/a[1]')
-			first_page.click()
-			wait_for_element(driver, '(//tr[@class="rigagriglia"])[2]/td[3][@class="pager-item active"]')
-			#go to next month
-			next_month = wait_for_element(driver,'(//td[@class="pager-next"]/a)[1]')
-			next_month.click()
-			wWait(driver, 10).until(EC.staleness_of(month))
+        pp.pprint(self.data)
 
-		pp.pprint(self.data)
+    def parse_jpop_news(self,driver):
+        news = wait_for_elements(driver,'//div[@id="post_list"]/ul/li/div/h3/a[contains(text(),"Uscite") or contains(text(),"uscite")]')
+        if(len(news)==0):
+            elem = wait_for_element(driver, '//a[@class="btn_right"]')
+            elem.click()
+            self.parse_jpop_news(driver)
+            pass
+        news_link = [x.get_attribute("href") for x in news[:min(len(news),2)]]
+        for link in news_link:
+            driver.get(link)
+            itemsX = '//div[@class="rte"]/p'
+            news_titleX = '//h2'
+            news_releaseX = '//fieldset/p/span'
 
-	def parse_jpop_news(self,driver):
-		news = wait_for_elements(driver,'//div[@id="post_list"]/ul/li/div/h3/a[contains(text(),"Uscite") or contains(text(),"uscite")]')
-		if(len(news)==0):
-			elem = wait_for_element(driver, '//a[@class="btn_right"]')
-			elem.click()
-			self.parse_jpop_news(driver)
-			pass
-		news_link = [x.get_attribute("href") for x in news[:min(len(news),2)]]
-		for link in news_link:
-			driver.get(link)
-			itemsX = '//div[@class="rte"]/p'
-			news_titleX = '//h2'
-			news_releaseX = '//fieldset/p/span'
+            news_title = wait_for_element(driver,news_titleX).text
+            news_release = wait_for_element(driver,news_releaseX).text
+            #print([news_title,news_release])
 
-			news_title = wait_for_element(driver,news_titleX).text
-			news_release = wait_for_element(driver,news_releaseX).text
-			#print([news_title,news_release])
+            # extract when new volume woll be released
+            release_date = re.match('.*\\s(\\d{4})-(\\d{2})-(\\d{2})', news_release)
+            release_tuple = (int(release_date.group(1)),int(release_date.group(2)),int(release_date.group(3)))
+            title_date = re.match('.*\\s(\\d+)\\s([a-zA-Z]*)!?', news_title)
+            title_tuple = (release_tuple[0], month_dict[title_date.group(2).lower()], int(title_date.group(1)))
+            if release_tuple[1]==12 and title_tuple[1]==1:
+                title_tuple[0]+=1
+            #print([title_tuple,release_tuple])
 
-			# extract when new volume woll be released
-			release_date = re.match('.*\\s(\\d{4})-(\\d{2})-(\\d{2})', news_release)
-			release_tuple = (int(release_date.group(1)),int(release_date.group(2)),int(release_date.group(3)))
-			title_date = re.match('.*\\s(\\d+)\\s([a-zA-Z]*)!?', news_title)
-			title_tuple = (release_tuple[0], month_dict[title_date.group(2).lower()], int(title_date.group(1)))
-			if release_tuple[1]==12 and title_tuple[1]==1:
-				title_tuple[0]+=1
-			#print([title_tuple,release_tuple])
+            paragraphs = wait_for_elements(driver, itemsX)
+            p_text = [x.text for x in paragraphs[1:]]
+            for p in p_text:
+                item_values = []
+                p_data = [x for x in p.split('\n')]
+                if not re.fullmatch('DIRECT \\d+', p_data[0]):
+                    item_values.append(p_data[0])	# title
+                else:
+                    continue
+                item_values.append('')			# subtitle
+                item_values.append(datetime.datetime(title_tuple[0],title_tuple[1],title_tuple[2]).strftime('%d/%m/%Y'))	# release date
+                temp = [x for x in p_data if '€' in x]
+                item_values.append('€ 0.00' if len(temp)==0 else temp[0])	# price
+                item_values.append('')			# cover
+                self.data.append(item_values)
 
-			paragraphs = wait_for_elements(driver, itemsX)
-			p_text = [x.text for x in paragraphs[1:]]
-			for p in p_text:
-				item_values = []
-				p_data = [x for x in p.split('\n')]
-				if not re.fullmatch('DIRECT \\d+', p_data[0]):
-					item_values.append(p_data[0])	# title
-				else:
-					continue
-				item_values.append('')			# subtitle
-				item_values.append(datetime.datetime(title_tuple[0],title_tuple[1],title_tuple[2]).strftime('%d/%m/%Y'))	# release date
-				temp = [x for x in p_data if '€' in x]
-				item_values.append('€ 0.00' if len(temp)==0 else temp[0])	# price
-				item_values.append('')			# cover
-				self.data.append(item_values)
+        print(tabulate(self.data))
 
-		print(tabulate(self.data))
-
-
-	def parse_jpop(self,driver):
-		pass
+    def parse_jpop(self,driver):
+        itemsX = '//div[@id="products_wrapper"]/ul/li/div/div/div[@class="view-content"]'
+        items = wait_for_elements(driver,itemsX)
+        titleX = '//div[@class="name"]/a/@title'
+        coverX = '//div[@class="image"]/a/img/@src'
+        priceX = '//p[@class="special-price"]/span/text()'
+        for item in items:
+            item_values = []
+            element = html.fromstring(item.get_attribute("innerHTML"))
+            item_values.append(element.xpath(titleX)[0])
+            item_values.append('')
+            item_values.append('')
+            item_values.append(element.xpath(priceX)[0])
+            item_values.append(element.xpath(coverX)[0])
+            self.data.append(item_values)
+        next_page = wait_for_element(driver,'//a[contains(@class,"next i-next")]').get_attribute("href")
+        return '' if next_page.endswith('#') else next_page
 
 
 def wait_for_element(driver,xpath):
-	return wWait(driver,10).until((lambda driver : driver.find_element_by_xpath(xpath)))
+    return wWait(driver,10).until((lambda driver : driver.find_element_by_xpath(xpath)))
 
 def wait_for_elements(driver,xpath):
-	return wWait(driver,10).until((lambda driver : driver.find_elements_by_xpath(xpath)))
+    return wWait(driver,10).until((lambda driver : driver.find_elements_by_xpath(xpath)))
 
 
 if __name__ == '__main__':
-	unittest.main()
+    unittest.main()
