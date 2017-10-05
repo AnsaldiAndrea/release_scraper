@@ -75,17 +75,10 @@ class WebScraper():
         self.driver.quit()
         print('updating sheet')
         sheet = self.mainsheet.worksheet(property='title', value='releases')
-        sheet.resize(len(self.data)-1,5)
+        sheet.resize(len(self.data)-1,6)
         sheet.clear()
         sheet.insert_rows(row=0,values=self.data)
         sheet.sync()
-        '''
-        i=0
-        for x in self.data:
-            print("insert_row {}".format(i))
-            i+=1
-            sheet.insert_row(x)
-        '''
 
     def parse_planet_manga(self,driver):
         mangaFilterXpath = '//*[@id="c31384"]/a'
@@ -112,6 +105,7 @@ class WebScraper():
             item_values.append(element.xpath(releaseX)[0])
             item_values.append(element.xpath(priceX)[0].strip())
             item_values.append(element.xpath(coverX)[0])
+            item_values.append('planet')
             self.data.append(item_values)
 
     def parse_starcomics(self,driver):
@@ -151,12 +145,17 @@ class WebScraper():
                 for item in items:
                     item_values = []
                     element = html.fromstring(item.get_attribute("innerHTML"))
-
-                    item_values.append(element.xpath(titleX)[0].strip())
-                    item_values.append('')
-                    item_values.append(element.xpath(releaseX)[0])
-                    item_values.append(element.xpath(priceX)[0])
-                    item_values.append(element.xpath(coverX)[0])
+                    try:
+                        item_values.append(element.xpath(titleX)[0].strip())
+                        item_values.append('')
+                        item_values.append(element.xpath(releaseX)[0])
+                        item_values.append(element.xpath(priceX)[0])
+                        item_values.append(element.xpath(coverX)[0])
+                        item_values.append('star')
+                    except Exception:
+                        print('skipped release - starcomics')
+                        item_values.clear()
+                        continue
                     self.data.append(item_values)
 
                 next_pageX = '((//td[@class="pager-next"])[2]/a[1])'
@@ -191,13 +190,17 @@ class WebScraper():
             #print([news_title,news_release])
 
             # extract when new volume woll be released
-            release_date = re.match('.*\\s(\\d{4})-(\\d{2})-(\\d{2})', news_release)
-            release_tuple = (int(release_date.group(1)),int(release_date.group(2)),int(release_date.group(3)))
-            title_date = re.match('.*\\s(\\d+)\\s([a-zA-Z]*)!?', news_title)
-            title_tuple = (release_tuple[0], month_dict[title_date.group(2).lower()], int(title_date.group(1)))
-            if release_tuple[1]==12 and title_tuple[1]==1:
-                title_tuple[0]+=1
-            #print([title_tuple,release_tuple])
+            try:
+                release_date = re.match('.*\\s(\\d{4})-(\\d{2})-(\\d{2})', news_release)
+                release_tuple = (int(release_date.group(1)),int(release_date.group(2)),int(release_date.group(3)))
+                title_date = re.match('.*\\s(\\d+)\\s([a-zA-Z]*)!?', news_title)
+                title_tuple = (release_tuple[0], month_dict[title_date.group(2).lower()], int(title_date.group(1)))
+                if release_tuple[1]==12 and title_tuple[1]==1:
+                    title_tuple[0]+=1
+                #print([title_tuple,release_tuple])
+            except Exception:
+                print('failed release date parsing at {} - trying again - jpop'.format(driver.current_url))
+                return driver.current_url
 
             paragraphs = wait_for_elements(driver, itemsX)
             p_text = [x.text for x in paragraphs[1:]]
@@ -213,6 +216,7 @@ class WebScraper():
                 temp = [x for x in p_data if '€' in x]
                 item_values.append('€ 0.00' if len(temp)==0 else temp[0])	# price
                 item_values.append('')			# cover
+                item_values.append('jpop')
                 self.data.append(item_values)
 
     def parse_jpop(self,driver):
@@ -229,6 +233,7 @@ class WebScraper():
             item_values.append('')
             item_values.append(element.xpath(priceX)[0])
             item_values.append(element.xpath(coverX)[0])
+            item_values.append('jpop')
             self.data.append(item_values)
         next_page = wait_for_element(driver,'//a[contains(@class,"next i-next")]').get_attribute("href")
         return '' if next_page.endswith('#') else next_page
