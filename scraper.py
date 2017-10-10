@@ -11,6 +11,7 @@ import locale
 import datetime
 import re
 from tabulate import tabulate
+import pygsheets
 
 pp = pprint.PrettyPrinter()
 
@@ -47,13 +48,12 @@ month_next = {
 
 class WebScraper():
 
-    def scrape(self):
+    def main(self):
         self.setUp()
         self.planet()
         self.star()
         self.jpop()
         self.tearDown()
-        return self.data
 
     def setUp(self):
         # PhantomJS driver -- service_args=['--load-images=no']
@@ -68,10 +68,10 @@ class WebScraper():
         self.driver = webdriver.Firefox(firefox_profile=firefox_profile)
         #'''
         self.data = []
-        #client = pygsheets.authorize(service_file='client_secret.json',no_cache=True)
+        client = pygsheets.authorize(service_file='client_secret.json',no_cache=True)
 
         # Find a workbook by name
-        #self.mainsheet = client.open("RawData")
+        self.mainsheet = client.open("RawData")
 
     def planet(self):
         # this week releases
@@ -101,14 +101,12 @@ class WebScraper():
     def tearDown(self):
         #print(tabulate(self.data))
         self.driver.quit()
-        '''
         print('updating sheet')
         sheet = self.mainsheet.worksheet(property='title', value='releases')
         sheet.resize(len(self.data)-1,6)
         sheet.clear()
         sheet.insert_rows(row=0,values=self.data)
         sheet.sync()
-        '''
 
     def parse_planet_manga(self,driver):
         mangaFilterXpath = '//*[@id="c31384"]/a'
@@ -292,3 +290,6 @@ def wait_for_clickable(driver,xpath):
 
 def normalize_price(price):
     return price.replace('€','').replace(',','.').strip()
+
+if __name__ == '__main__':
+    WebScraper().main()
