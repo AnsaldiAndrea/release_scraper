@@ -1,9 +1,4 @@
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait as wait
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.expected_conditions import _find_element
-from selenium.common.exceptions import TimeoutException
 from lxml import html
 from io import StringIO, BytesIO
 import pprint
@@ -12,6 +7,7 @@ import datetime
 import re
 from tabulate import tabulate
 import pygsheets
+from lib.seleniumhelper import *
 
 pp = pprint.PrettyPrinter()
 
@@ -54,6 +50,14 @@ class WebScraper():
         self.star()
         self.jpop()
         self.tearDown()
+
+    def extract(self):
+        self.setUp()
+        self.planet()
+        self.star()
+        self.jpop()
+        self.tearDown()
+        return self.data
 
     def setUp(self):
         # PhantomJS driver -- service_args=['--load-images=no']
@@ -101,6 +105,8 @@ class WebScraper():
     def tearDown(self):
         #print(tabulate(self.data))
         self.driver.quit()
+
+    def update_sheet(self):
         print('updating sheet')
         sheet = self.mainsheet.worksheet(property='title', value='releases')
         sheet.resize(len(self.data)-1,6)
@@ -202,7 +208,7 @@ class WebScraper():
             next_month.click()
             print('next month clicked')
 
-            wait(driver, 10)
+            #wait(driver, 10)
             next_month_name = month_next[re.match('(.*)\\s-\\s\\d+',month_name).group(1)]
             next_month_nameX = '//td[@class="pager-count"]/span[contains(text(),{})]'.format(next_month_name)
             wait_for_element(driver,next_month_nameX)
@@ -279,17 +285,6 @@ class WebScraper():
         return '' if next_page.endswith('#') else next_page
 
 
-def wait_for_element(driver,xpath):
-    return wait(driver,10).until((lambda driver : driver.find_element_by_xpath(xpath)))
-
-def wait_for_elements(driver,xpath):
-    return wait(driver,10).until((lambda driver : driver.find_elements_by_xpath(xpath)))
-
-def wait_for_clickable(driver,xpath):
-    return wait(driver,10).until(expected_conditions.element_to_be_clickable((By.XPATH,xpath)))
-
-def normalize_price(price):
-    return price.replace('€','').replace(',','.').strip()
 
 if __name__ == '__main__':
     WebScraper().main()
