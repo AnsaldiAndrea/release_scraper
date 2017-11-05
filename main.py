@@ -1,6 +1,6 @@
 """main module"""
 from scraper import WebScraper
-from package import csvstring, encoder
+from mypackage import csvstring, encoder
 from pastebin import PastebinAPI
 from lxml import etree
 
