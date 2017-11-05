@@ -2,8 +2,6 @@
 data/*
 client_secret.json
 test.py
-package/csvstring.py
-package/encoder.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
