@@ -1,10 +1,9 @@
 """release scraper"""
-from datetime import datetime
-import re
 import pprint
 from selenium import webdriver
 from lxml import html
 from package.seleniumhelper import wait_for_element, wait_for_elements, wait_for_clickable
+from package.normal import *
 
 pp = pprint.PrettyPrinter()
 
@@ -39,7 +38,7 @@ MONTH_NEXT = {
 }
 
 
-class WebScraper():
+class WebScraper:
     """class for release scraping"""
 
     def __init__(self):
@@ -124,13 +123,13 @@ class WebScraper():
             # Get page month
             month = wait_for_element(driver, '//td[@class="pager-count"]/span').text
             if month in month_list:
-                break   # page has already been scraped
+                break  # page has already been scraped
             month_list.append(month)
-            pager = wait_for_elements(driver, '(//tr[@class="rigagriglia"])[2]/td') # Get number of pages
+            pager = wait_for_elements(driver, '(//tr[@class="rigagriglia"])[2]/td')  # Get number of pages
 
             for i in range(len(pager[3:])):
                 i_page_active_x = '(//tr[@class="rigagriglia"])[2]/td[{}][@class="pager-item active"]'.format(i + 3)
-                wait_for_element(driver, i_page_active_x)   # wait for page to load
+                wait_for_element(driver, i_page_active_x)  # wait for page to load
 
                 items = wait_for_elements(driver, '//td[@itemprop="itemListElement"]')[4:]
                 title_x = '//h4[@class="title"]/@title'
@@ -149,7 +148,7 @@ class WebScraper():
                     item_values['publisher'] = 'star'
                     self.data.append(item_values)
 
-                wait_for_clickable(driver, '((//td[@class="pager-next"])[2]/a[1])').click() # next page
+                wait_for_clickable(driver, '((//td[@class="pager-next"])[2]/a[1])').click()  # next page
 
             # go back to first page
             wait_for_clickable(driver, '(//tr[@class="rigagriglia"])[2]/td[2]/a[1]').click()
@@ -189,7 +188,7 @@ class WebScraper():
                 item_values['subtitle'] = ''  # subtitle
                 item_values['release_date'] = release_date
                 temp = [x for x in p_data if '€' in x]
-                item_values['price'] = ('0.00' if not temp else self.normalize_price(temp[0]))  # price
+                item_values['price'] = ('0.00' if not temp else normalize_price(temp[0]))  # price
                 item_values['cover'] = ''  # cover
                 item_values['publisher'] = 'jpop'
                 self.data.append(item_values)
@@ -215,9 +214,9 @@ class WebScraper():
         """get data from element given xpath"""
         data = {'title': (element.xpath(title_xpath)[0]),
                 'subtitle': WebScraper.value_from_xpath(element, subtitle_xpath),
-                'release_date': WebScraper.normaliza_release_date(
+                'release_date': normaliza_release_date(
                     date_str=WebScraper.value_from_xpath(element, release_xpath)),
-                'price': WebScraper.normalize_price(WebScraper.value_from_xpath(element, price_xpath)),
+                'price': normalize_price(WebScraper.value_from_xpath(element, price_xpath)),
                 'cover': WebScraper.value_from_xpath(element, cover_xpath)
                 }
         return data
@@ -243,21 +242,7 @@ class WebScraper():
                       int(title.group(1)))
         if release_date[1] == 12 and title_date[1] == 1:
             title_date = (title_date[0] + 1, title_date[1], title_date[2])
-        return WebScraper.normaliza_release_date(date_tuple=title_date)
-
-    @staticmethod
-    def normaliza_release_date(date_str=None, date_tuple=None):
-        """return normalized release date"""
-        if date_tuple:
-            return datetime(date_tuple[0], date_tuple[1], date_tuple[2]).strftime('%Y-%m-%d')
-        if date_str:
-            return datetime.strptime(date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
-        return ''
-
-    @staticmethod
-    def normalize_price(price):
-        """return price without € and comma"""
-        return price.replace('€', '').replace(',', '.').strip()
+        return normaliza_release_date(date_tuple=title_date)
 
 
 if __name__ == '__main__':
