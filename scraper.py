@@ -182,7 +182,7 @@ class WebScraper:
                 item_values = {}
                 p_data = [x for x in p.split('\n')]
                 if not re.fullmatch('DIRECT \\d+', p_data[0]):
-                    item_values['title'] = p_data[0]  # title
+                    item_values['title_volume'] = p_data[0]  # title
                 else:
                     continue
                 item_values['subtitle'] = ''  # subtitle
@@ -212,7 +212,7 @@ class WebScraper:
     def data_from_elem(element, title_xpath, subtitle_xpath=None, release_xpath=None, price_xpath=None,
                        cover_xpath=None):
         """get data from element given xpath"""
-        data = {'title': (element.xpath(title_xpath)[0]),
+        data = {'title_volume': (element.xpath(title_xpath)[0]).strip(),
                 'subtitle': WebScraper.value_from_xpath(element, subtitle_xpath),
                 'release_date': normaliza_release_date(
                     date_str=WebScraper.value_from_xpath(element, release_xpath)),
@@ -227,7 +227,7 @@ class WebScraper:
         if not xpath: return ''
         values = element.xpath(xpath)
         if not values: return ''
-        return values[0]
+        return values[0].strip()
 
     @staticmethod
     def get_release_date(news_release, news_title):
@@ -236,7 +236,7 @@ class WebScraper:
         release_date = (int(release.group(1)),
                         int(release.group(2)),
                         int(release.group(3)))
-        title = re.match('.*\\s(\\d+)\\s([a-zA-Z]*)!?', news_title)
+        title = re.match('.*[\\s|\'](\\d+)\\s([a-zA-Z]*)!?', news_title)
         title_date = (release_date[0],
                       MONTH_DICT[title.group(2).lower()],
                       int(title.group(1)))
