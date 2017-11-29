@@ -1,56 +1,35 @@
 """main module"""
 import json
 
+import requests
+
 from scraper import WebScraper
-# from mypackage import csvstring
-from mypackage import encoder
-from mypackage.pastebin import PastebinAPI
-from lxml import etree
 
-'''
-def save():
-    """get data from scraper and save to paste"""
-    data = WebScraper().extract()
-    csv_data = csvstring.values_to_csv(data)
-    encoded_data = encoder.encode(csv_data)
-    # Create pastebin paste
-    api_key = 'bdb21db2a07cb713b7e6a1713257564d'
-    pastebin = PastebinAPI()
-    user_key = pastebin.generate_user_key(api_key, 'Raistrike', 'Nuvoletta2').decode('utf-8')
-    paste = pastebin.pastes_by_user(api_key, user_key).decode('utf-8')
-    root = etree.fromstring(paste)
-    paste_key = root.xpath('paste_key')[0].text
-    delete = pastebin.delete_paste(api_key, user_key, paste_key)
-    print('{} : {}'.format(delete, paste_key))
-    paste = pastebin.paste(api_key,
-                           encoded_data,
-                           api_user_key=user_key,
-                           paste_name='data.csv',
-                           paste_private='unlisted')
-    print(paste.decode('utf-8'))
-'''
+fail = [{
+    "title_volume": "Boruto – Naruto the movie",
+    "subtitle": "",
+    "release_date": "2017-12-07",
+    "price": "8.91",
+    "cover": "http://comics.panini.it/store/media/catalog/product/cache/80/thumbnail/9df78eab33525d08d6e5fb8d27136e95/M/N/MNARO013ISBN_0.jpg",
+    "publisher": "planet"
+}]
+
+correct = [{"test":"ok"}]
 
 
-def save_json():
-    """get data from scraper and save to paste"""
-    data = WebScraper().extract()
-    json_data = json.dumps(data)
-    encoded_data = encoder.encode(json_data)
-    # Create pastebin paste
-    api_key = 'bdb21db2a07cb713b7e6a1713257564d'
-    pastebin = PastebinAPI()
-    user_key = pastebin.generate_user_key(api_key, 'Raistrike', 'Nuvoletta2').decode('utf-8')
-    paste = pastebin.pastes_by_user(api_key, user_key).decode('utf-8')
-    root = etree.fromstring(paste)
-    paste_key = root.xpath('paste_key')[0].text
-    delete = pastebin.delete_paste(api_key, user_key, paste_key)
-    print('{} : {}'.format(delete, paste_key))
-    paste = pastebin.paste(api_key,
-                           encoded_data,
-                           api_user_key=user_key,
-                           paste_name='data.json',
-                           paste_private='unlisted')
-    print(paste.decode('utf-8'))
+def send_data(_data):
+    r = requests.post("http://raistrike.pythonanywhere.com/api/parse_releases", json=_data)
+    return r
 
 
-save_json()
+def get_cached_data():
+    return json.load(open("cached.log"))
+
+
+if __name__ == '__main__':
+    #data = WebScraper().extract()
+    data = get_cached_data()
+    #json_data= json.dumps(data, ensure_ascii=False)
+    #test = [x for x in data if x['publisher'] == 'jpop']
+    #test_json = json.dumps(correct)
+    print(send_data(data).text)

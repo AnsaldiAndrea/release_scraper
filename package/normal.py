@@ -11,7 +11,7 @@ def normaliza_release_date(date_str=None, date_tuple=None, date=None):
         return datetime.strptime(date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
     if date:
         return date.strftime('%Y-%m-%d')
-    return ''
+    return '1900-01-01'
 
 
 def normalize_price(price):

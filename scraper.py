@@ -1,8 +1,7 @@
 """release scraper"""
 import pprint
-from selenium import webdriver
 from lxml import html
-from package.seleniumhelper import wait_for_element, wait_for_elements, wait_for_clickable
+from package.seleniumhelper import wait_for_element, wait_for_elements, wait_for_clickable, firefox
 from package.normal import *
 
 pp = pprint.PrettyPrinter()
@@ -42,10 +41,7 @@ class WebScraper:
     """class for release scraping"""
 
     def __init__(self):
-        firefox_profile = webdriver.FirefoxProfile()
-        firefox_profile.set_preference('permissions.default.image', 2)
-        firefox_profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so', 'false')
-        self.driver = webdriver.Firefox(firefox_profile=firefox_profile)
+        self.driver = firefox()
         self.data = []
 
     def main(self):
@@ -55,7 +51,6 @@ class WebScraper:
         self.jpop()
         self.driver.quit()
         pp.pprint(self.data)
-        print('count = {}'.format(len(self.data)))
 
     def extract(self):
         """extract"""
