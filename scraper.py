@@ -1,8 +1,11 @@
 """release scraper"""
 import pprint
 from lxml import html
+from selenium.common.exceptions import TimeoutException
+
 from package.seleniumhelper import wait_for_element, wait_for_elements, wait_for_clickable, firefox
 from package.normal import *
+from package.xpath import value_from_xpath
 
 pp = pprint.PrettyPrinter()
 
@@ -52,16 +55,22 @@ class WebScraper:
         self.driver.quit()
         pp.pprint(self.data)
 
-    def extract(self):
+    def extract(self, planet=True, planet_old=False, star=True, jpop=True):
         """extract"""
-        self.planet()
-        self.star()
-        self.jpop()
+        if planet:
+            self.planet(planet_old)
+        if star:
+            self.star()
+        if jpop:
+            self.jpop()
         self.driver.quit()
         return self.data
 
-    def planet(self):
+    def planet(self, planet_old=False):
         """get planet manga releases"""
+        if planet_old:
+            self.driver.get("http://comics.panini.it/calendario/uscite-scorse-settimane/")
+            self.parse_planet_manga(self.driver)
         # this week releases
         self.driver.get("http://comics.panini.it/calendario/uscite-questa-settimana/")
         # print('parsing - this week - planet')
@@ -98,8 +107,10 @@ class WebScraper:
         release_x = ".//span[@class='uscita itemValue']/text()"
         price_x = ".//div[@class='price']/text()"
         cover_x = ".//a[@class='product-image']/img/@src"
-
-        items = wait_for_elements(driver, items_x)
+        try:
+            items = wait_for_elements(driver, items_x)
+        except TimeoutException:
+            return
         for item in items:
             element = html.fromstring(item.get_attribute("innerHTML"))
             item_values = self.data_from_elem(element,
@@ -208,21 +219,13 @@ class WebScraper:
                        cover_xpath=None):
         """get data from element given xpath"""
         data = {'title_volume': (element.xpath(title_xpath)[0]).strip(),
-                'subtitle': WebScraper.value_from_xpath(element, subtitle_xpath),
+                'subtitle': value_from_xpath(element, subtitle_xpath),
                 'release_date': normaliza_release_date(
-                    date_str=WebScraper.value_from_xpath(element, release_xpath)),
-                'price': normalize_price(WebScraper.value_from_xpath(element, price_xpath)),
-                'cover': WebScraper.value_from_xpath(element, cover_xpath)
+                    date_str=value_from_xpath(element, release_xpath)),
+                'price': normalize_price(value_from_xpath(element, price_xpath)),
+                'cover': value_from_xpath(element, cover_xpath)
                 }
         return data
-
-    @staticmethod
-    def value_from_xpath(element, xpath):
-        """get value from xpath"""
-        if not xpath: return ''
-        values = element.xpath(xpath)
-        if not values: return ''
-        return values[0].strip()
 
     @staticmethod
     def get_release_date(news_release, news_title):

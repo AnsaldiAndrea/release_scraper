@@ -1,24 +1,25 @@
-"""main module"""
 import json
-
 import requests
 
 from scraper import WebScraper
 
-fail = [{
-    "title_volume": "Boruto – Naruto the movie",
-    "subtitle": "",
-    "release_date": "2017-12-07",
-    "price": "8.91",
-    "cover": "http://comics.panini.it/store/media/catalog/product/cache/80/thumbnail/9df78eab33525d08d6e5fb8d27136e95/M/N/MNARO013ISBN_0.jpg",
-    "publisher": "planet"
-}]
 
-correct = [{"test":"ok"}]
+def get_data(cached=False):
+    if cached:
+        return get_cached_data()
+    _data = WebScraper().extract()
+    with open("cached.log", "w+") as x:
+        x.write(json.dumps(_data, ensure_ascii=False, indent=4))
+    return _data
 
 
-def send_data(_data):
-    r = requests.post("http://raistrike.pythonanywhere.com/api/parse_releases", json=_data)
+def parse_release(_data):
+    r = requests.post("http://raistrike.pythonanywhere.com/api/releases/parse", json=_data)
+    return r
+
+
+def add_release(_data):
+    r = requests.post("http://raistrike.pythonanywhere.com/api/releases", json=_data)
     return r
 
 
@@ -26,10 +27,22 @@ def get_cached_data():
     return json.load(open("cached.log"))
 
 
+def add_manga(filename):
+    m = json.load(open(filename))
+    r = requests.post("http://raistrike.pythonanywhere.com/api/manga", json=m['info'])
+    if r.status_code == 200:
+        for x in m['releases']:
+            r = add_release(x)
+            if not r.status_code == 200:
+                return r
+        return r
+    return r
+
+
 if __name__ == '__main__':
-    #data = WebScraper().extract()
-    data = get_cached_data()
-    #json_data= json.dumps(data, ensure_ascii=False)
-    #test = [x for x in data if x['publisher'] == 'jpop']
-    #test_json = json.dumps(correct)
-    print(send_data(data).text)
+    data = get_data()
+    for x in data:
+        ret = json.loads(parse_release(x).text)
+        print(ret)
+        if not ret['id'] == 'unknown':
+            add_release(ret)

@@ -1,6 +1,7 @@
 # Personal Files
 data/*
 client_secret.json
+input.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

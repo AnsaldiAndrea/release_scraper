@@ -1,13 +1,10 @@
 import json
-import pprint
 from operator import itemgetter
 from lxml import html
 from package.normal import *
 from package.seleniumhelper import *
 from slugify import slugify
-
-pp = pprint.PrettyPrinter()
-default_cover_planet = 'http://comics.panini.it/store/media/catalog/product/cache/80/image/9df78eab33525d08d6e5fb8d27136e95/placeholder/default/no-photo_265x265.jpg'
+from package import xpath
 
 
 class InfoFinder:
@@ -25,34 +22,39 @@ class InfoFinder:
         info = self.bakaupdates(parsed_id)
         info['id'] = manga_id
         info['title'] = title
-        if publisher == 'Planet Manga':
-            info['pubisher'] = 'Planet Manga'
+        if publisher == 'planet':
+            info['publisher'] = 'planet'
             release_list = self.planet(info, title, search, alias, ignore)
         else:
             release_list = []
         self.driver.close()
         self.calculate_released_and_cover(info, release_list)
         self.adjust(info)
+        """
         cll = self.collection(release_list)
         return {'info': info, 'release': release_list, 'collection': cll}
+        """
+        return {'info':info, 'releases':release_list}
 
     def bakaupdates(self, manga_id):
         """get info from bakaupdates"""
         self.driver.get("https://www.mangaupdates.com/series.html?id={}".format(manga_id))
         page = html.fromstring(self.driver.page_source)
-        title_x = "//span[@class='releasestitle tabletitle']/text()"
-        # original_title = page.xpath(title_x)[0].strip()
+        original_x = "//span[@class='releasestitle tabletitle']/text()"
+        original_title = xpath.value_from_xpath(page, original_x)
         status_x = "//div[@class='sCat']/b[text()='Status in Country of Origin']/../following-sibling::div[1]/text()"
-        status = page.xpath(status_x)[0].strip()
-        match = re.match('(\\d+)\\sVolumes\\s\\((\\w*)\\)', status)
+        status = xpath.value_from_xpath(page, status_x)
+        match = re.match('(\\d+)\\sVolume[s]?\\s(?:.*\\s)?\\((.*)\\)', status)
         status = (int(match.group(1)), match.group(2))
+        # TODO: check refactoring
         author_x = "//div[@class='sCat']/b[text()='Author(s)']/../following-sibling::div[1]/a/u/text()"
         author = [self.format_person(x) for x in page.xpath(author_x)[0].split(',')]
         artist_x = "//div[@class='sCat']/b[text()='Artist(s)']/../following-sibling::div[1]/a/u/text()"
         artist = [self.format_person(x) for x in page.xpath(artist_x)[0].split(',')]
+        #
         genre_x = "//div[@class='sCat']/b[text()='Genre']/../following-sibling::div[1]/a/u/text()"
-        genre = page.xpath(genre_x)
-        return {'status': status, 'genre': genre, 'author': author, 'artist': artist}
+        genre = xpath.values_from_xpath(page, genre_x)
+        return {'original': original_title, 'status': status, 'genre': genre, 'author': author, 'artist': artist}
 
     @staticmethod
     def format_person(a):
@@ -82,36 +84,34 @@ class InfoFinder:
             for item in items:
                 value = {'id': m['id']}
                 elem = html.fromstring(item.get_attribute('innerHTML'))
-                title_raw = elem.xpath("//h3[@class='product-name']/a/@title")[0]
+                title_raw = xpath.value_from_xpath(elem, "//h3[@class='product-name']/a/@title")
                 normal_title_raw = normalize_title(title_raw)
                 if normal_title_raw not in titles:
                     continue
-                title_volume = re.sub('\\s+', ' ', elem.xpath("//h3[@class='product-name']/a/text()")[0]).strip()
+                title_volume = self.clear_string(xpath.value_from_xpath(elem, "//h3[@class='product-name']/a/text()"))
                 try:
                     volume = int(re.sub(title_raw, '', title_volume).strip())
                     value['volume'] = volume
                 except ValueError:
                     continue
-                subtitle = elem.xpath("//small[@class='subtitle lightText']/text()")
-                value['subtitle'] = re.sub('\\s+', ' ', subtitle[0]).strip() if subtitle else ''
-                cover = elem.xpath("//a[@class='product-image']/img/@src")[0].strip().replace('small_image/200x',
-                                                                                              'image')
-                value['cover'] = cover
-                release_date = elem.xpath("//h4[@class='publication-date']/text()")[0].strip()
-                value['release_date'] = datetime.strptime(release_date, '%d/%m/%Y')
-                price_elem = elem.xpath("//p[@class='special-price']/span/text()")
-                if price_elem:
-                    price = normalize_price(price_elem[0].strip())
-                else:
-                    price_elem = elem.xpath("//p[@class='price']/span/text()")
-                    if price_elem:
-                        price = normalize_price(price_elem[0].strip())
-                    else:
-                        price = '0'
+                subtitle = xpath.value_from_xpath(elem, "//small[@class='subtitle lightText']/text()")
+                value['subtitle'] = self.clear_string(subtitle)
 
-                value['price'] = price
+                # if title or subtitle is blacklisted ignore item
                 if normal_title_raw in ignore or normalize_title(value['subtitle']) in ignore:
                     continue
+
+                value['cover'] = xpath.value_from_xpath(elem, "//a[@class='product-image']/img/@src").replace('small_image/200x',
+                                                                                                     'image')
+                release_date = xpath.value_from_xpath(elem, "//h4[@class='publication-date']/text()")
+                value['release_date'] = datetime.strptime(release_date, '%d/%m/%Y')
+                price_elem = xpath.value_from_xpath(elem, "//p[@class='special-price']/span/text()")
+                if price_elem:
+                    value['price'] = normalize_price(price_elem)
+                else:
+                    price_elem = xpath.value_from_xpath(elem, "//p[@class='price']/span/text()")
+                    value['price'] = normalize_price(price_elem) if price_elem else '0'
+
                 data.append(value)
 
             next_page = element_exist(self.driver, next_page_x)
@@ -134,7 +134,8 @@ class InfoFinder:
     @staticmethod
     def calculate_released_and_cover(info, release_list):
         """calculate released volumes and cover from releases list"""
-        out_release = filter(lambda i: i['release_date'].isocalendar()[:2] <= datetime.now().isocalendar()[:2], release_list)
+        out_release = filter(lambda i: i['release_date'].isocalendar()[:2] <= datetime.now().isocalendar()[:2],
+                             release_list)
         info['released'] = max([x['volume'] for x in out_release], default=0)
 
         if not info['released'] == 0:
@@ -145,17 +146,18 @@ class InfoFinder:
         for x in release_list:
             x['release_date'] = normaliza_release_date(date=x['release_date'])
 
+
     @staticmethod
     def adjust(info):
         """adjust info"""
         info['volumes'] = info['status'][0]
-        info['complete'] = True if info['status'][1] == 'Complete' else False
+        info['complete'] = True if info['status'][1] == 'complete' else False
         if info['complete'] and info['released'] == info['volumes']:
-            info['status'] = 'Complete'
+            info['status'] = 'complete'
         elif info['released'] == 0:
-            info['status'] = 'TBR'
+            info['status'] = 'tba'
         else:
-            info['status'] = 'Ongoing'
+            info['status'] = 'ongoing'
         info['cover'] = info['cover'] if 'cover' in info else ''
 
     @staticmethod
@@ -170,7 +172,7 @@ class InfoFinder:
         for i in range(volumes):
             c = sorted(filter(lambda x: x['volume'] == i + 1, release_list), key=itemgetter('release_date'))
             if c:
-                if len(c) > 1 and c[0]["cover"] == default_cover_planet:
+                if len(c) > 1:
                     cll.append(
                         {"id": c[1]["id"], "subtitle": c[1]["subtitle"], "volume": i + 1, "cover": c[1]["cover"]})
                 else:
@@ -181,13 +183,18 @@ class InfoFinder:
                 cll.append(temp)
         return cll
 
+    @staticmethod
+    def clear_string(string):
+        """removes excessive white spaces from string"""
+        return re.sub('\\s+', ' ', string)
+
 
 if __name__ == '__main__':
     with open("input.json") as j:
         s = j.read()
     _input = json.loads(s)
     test = _input[-1]
-    a = InfoFinder().find(test['id'], title=test['title'], search=test['search'], alias=test.get('alias',[]),
+    a = InfoFinder().find(test['id'], title=test['title'], search=test['search'], alias=test.get('alias', []),
                           publisher=test['publisher'], ignore=test.get('ignore', []))
     with open('data/{}.json'.format(slugify(test['title'])), 'w+') as f:
         f.write(json.dumps(a, indent=5))
