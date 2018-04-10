@@ -1,7 +1,7 @@
 # Personal Files
 data/*
-client_secret.json
 input.json
+scratch.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

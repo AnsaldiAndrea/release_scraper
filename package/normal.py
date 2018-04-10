@@ -3,7 +3,7 @@ from datetime import datetime
 import re
 
 
-def normaliza_release_date(date_str=None, date_tuple=None, date=None):
+def normalize_release_date(date_str=None, date_tuple=None, date=None):
     """return normalized release date"""
     if date_tuple:
         return datetime(date_tuple[0], date_tuple[1], date_tuple[2]).strftime('%Y-%m-%d')

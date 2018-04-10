@@ -1,10 +1,38 @@
 import json
 from operator import itemgetter
+
 from lxml import html
+from slugify import slugify
+
+from package import xpath
 from package.normal import *
 from package.seleniumhelper import *
-from slugify import slugify
-from package import xpath
+from publisher_parser import star, planet, jpop
+
+
+def get_title_from_search(search, publisher):
+    titles = []
+    if publisher == 'planet':
+        driver = firefox()
+        driver.get("http://comics.panini.it/store/pub_ita_it/catalogsearch/result/?q={}".format(search))
+        while True:
+            next_page_x = "//a[@class='next i-next']"
+            items_x = "//div[@id='products-list']/div"
+            items = wait_for_elements(driver, items_x)
+            for item in items:
+                elem = html.fromstring(item.get_attribute('innerHTML'))
+                title = xpath.value_from_xpath(elem, "//h3[@class='product-name']/a/@title")
+                normal_title = normalize_title(title)
+                if normal_title not in titles:
+                    titles.append(normal_title)
+            next_page = element_exist(driver, next_page_x)
+            if next_page:
+                next_page.click()
+            else:
+                driver.quit()
+                return titles
+    else:
+        return []
 
 
 class InfoFinder:
@@ -24,17 +52,20 @@ class InfoFinder:
         info['title'] = title
         if publisher == 'planet':
             info['publisher'] = 'planet'
-            release_list = self.planet(info, title, search, alias, ignore)
+            release_list = planet.new_get_info(self.driver, manga_id, title, search, alias, ignore)
+        elif publisher == 'star':
+            info['publisher'] = 'star'
+            release_list = star.get_info(self.driver, manga_id, title, search)
+        elif publisher == 'jpop':
+            info['publisher'] = 'jpop'
+            release_list = jpop.get_info()
         else:
             release_list = []
         self.driver.close()
         self.calculate_released_and_cover(info, release_list)
         self.adjust(info)
-        """
-        cll = self.collection(release_list)
-        return {'info': info, 'release': release_list, 'collection': cll}
-        """
-        return {'info':info, 'releases':release_list}
+        self.set_cover(info, release_list)
+        return {'info': info, 'releases': release_list}
 
     def bakaupdates(self, manga_id):
         """get info from bakaupdates"""
@@ -69,68 +100,6 @@ class InfoFinder:
             return ' '.join(parts).title()
         return a
 
-    def planet(self, m, title, search, alias, ignore):
-        """get all releases for a planetmanga manga"""
-        normal_title = normalize_title(title)
-        normal_alias = normalize_titles(alias)
-        titles = [normal_title, normal_alias]
-        ignore = normalize_titles(ignore)
-        self.driver.get("http://comics.panini.it/store/pub_ita_it/catalogsearch/result/?q={}".format(search))
-        next_page_x = "//a[@class='next i-next']"
-        data = []
-        while True:
-            items_x = "//div[@id='products-list']/div"
-            items = wait_for_elements(self.driver, items_x)
-            for item in items:
-                value = {'id': m['id']}
-                elem = html.fromstring(item.get_attribute('innerHTML'))
-                title_raw = xpath.value_from_xpath(elem, "//h3[@class='product-name']/a/@title")
-                normal_title_raw = normalize_title(title_raw)
-                if normal_title_raw not in titles:
-                    continue
-                title_volume = self.clear_string(xpath.value_from_xpath(elem, "//h3[@class='product-name']/a/text()"))
-                try:
-                    volume = int(re.sub(title_raw, '', title_volume).strip())
-                    value['volume'] = volume
-                except ValueError:
-                    continue
-                subtitle = xpath.value_from_xpath(elem, "//small[@class='subtitle lightText']/text()")
-                value['subtitle'] = self.clear_string(subtitle)
-
-                # if title or subtitle is blacklisted ignore item
-                if normal_title_raw in ignore or normalize_title(value['subtitle']) in ignore:
-                    continue
-
-                value['cover'] = xpath.value_from_xpath(elem, "//a[@class='product-image']/img/@src").replace('small_image/200x',
-                                                                                                     'image')
-                release_date = xpath.value_from_xpath(elem, "//h4[@class='publication-date']/text()")
-                value['release_date'] = datetime.strptime(release_date, '%d/%m/%Y')
-                price_elem = xpath.value_from_xpath(elem, "//p[@class='special-price']/span/text()")
-                if price_elem:
-                    value['price'] = normalize_price(price_elem)
-                else:
-                    price_elem = xpath.value_from_xpath(elem, "//p[@class='price']/span/text()")
-                    value['price'] = normalize_price(price_elem) if price_elem else '0'
-
-                data.append(value)
-
-            next_page = element_exist(self.driver, next_page_x)
-            if next_page:
-                next_page.click()
-            else:
-                break
-
-        release_list = sorted(data, key=itemgetter('release_date'))
-        return release_list
-
-    def star(self, title, alias):
-        """star"""
-        pass
-
-    def jpop(self, title, alias):
-        """jpop"""
-        pass
-
     @staticmethod
     def calculate_released_and_cover(info, release_list):
         """calculate released volumes and cover from releases list"""
@@ -144,14 +113,13 @@ class InfoFinder:
             info['cover'] = c[0]['cover']
 
         for x in release_list:
-            x['release_date'] = normaliza_release_date(date=x['release_date'])
-
+            x['release_date'] = normalize_release_date(date=x['release_date'])
 
     @staticmethod
     def adjust(info):
         """adjust info"""
         info['volumes'] = info['status'][0]
-        info['complete'] = True if info['status'][1] == 'complete' else False
+        info['complete'] = True if info['status'][1] == 'Complete' else False
         if info['complete'] and info['released'] == info['volumes']:
             info['status'] = 'complete'
         elif info['released'] == 0:
@@ -161,32 +129,12 @@ class InfoFinder:
         info['cover'] = info['cover'] if 'cover' in info else ''
 
     @staticmethod
-    def collection(release_list):
-        """get collection from list of releases"""
-        cll = []
-        if not release_list: return []
-        volumes = max(release_list, key=itemgetter("volume"))
-        if not volumes: return []
-        volumes = volumes["volume"]
-        dummy = release_list[0]
-        for i in range(volumes):
-            c = sorted(filter(lambda x: x['volume'] == i + 1, release_list), key=itemgetter('release_date'))
-            if c:
-                if len(c) > 1:
-                    cll.append(
-                        {"id": c[1]["id"], "subtitle": c[1]["subtitle"], "volume": i + 1, "cover": c[1]["cover"]})
-                else:
-                    cll.append(
-                        {"id": c[0]["id"], "subtitle": c[0]["subtitle"], "volume": i + 1, "cover": c[0]["cover"]})
-            else:
-                temp = {"id": dummy["id"], "subtitle": "", "volume": i + 1, "cover": ""}
-                cll.append(temp)
-        return cll
-
-    @staticmethod
-    def clear_string(string):
-        """removes excessive white spaces from string"""
-        return re.sub('\\s+', ' ', string)
+    def set_cover(info, releases):
+        """if cover is missign set cover to first volume if available"""
+        if releases and not info['cover']:
+            x = [x for x in releases if x['volume']==1]
+            if x:
+                info['cover'] = x[0]['cover']
 
 
 if __name__ == '__main__':
