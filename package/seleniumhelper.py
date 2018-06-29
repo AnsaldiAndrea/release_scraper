@@ -1,17 +1,28 @@
 """Helper module for selenium related function"""
+from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException, TimeoutException, \
     StaleElementReferenceException
-from selenium.webdriver.support.ui import WebDriverWait as wait
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support import expected_conditions
-from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait as wait
 
 
 def firefox():
-    """return a """
+    """return headless firefox driver"""
+    option = Options()
+    option.headless = True
+    firefox_profile = webdriver.FirefoxProfile(
+        "C:/Users/ansal/AppData/Roaming/Mozilla/Firefox/Profiles/6g14qr6y.Selenium")
+    firefox_profile.set_preference('permissions.default.image', 2)
+    firefox_profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so', 'false')
+    return webdriver.Firefox(firefox_options=option, firefox_profile=firefox_profile)
+
+
+def firefox_no_image():
+    """return firefox driver without image loading"""
     firefox_profile = webdriver.FirefoxProfile()
     firefox_profile.set_preference('permissions.default.image', 2)
-    #firefox_profile.set_preference('permissions.default.stylesheet', 2)
     firefox_profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so', 'false')
     return webdriver.Firefox(firefox_profile=firefox_profile)
 
@@ -67,13 +78,13 @@ def wait_for_text_present(driver, xpath, text):
 def wait_for_class_change(driver, xpath, _class):
     """wait for element class to contain _class"""
     try:
-        return wait(driver, 10).until(element_has_class((By.XPATH, xpath), _class))
+        return wait(driver, 10).until(ElementHasClass((By.XPATH, xpath), _class))
     except StaleElementReferenceException:
         wait_for_ajax(driver)
         return wait_for_class_change(driver, xpath, _class)
 
 
-class element_has_class(object):
+class ElementHasClass(object):
     """An expectation for checking that an element has a particular class.
 
     locator - used to find the element

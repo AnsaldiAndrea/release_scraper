@@ -112,14 +112,6 @@ def get_release_date(news_release, news_title):
     return normalize_release_date(date_tuple=title_date)
 
 
-def adjust_releases(news_releases, releases):
-    for r in news_releases:
-        r_c = next((x for x in releases if x['id']==r['id'] and x['volume']==r['volume'] and x['subtitle']==r['subtitle']), None)
-        if r_c:
-            r['cover'] = r_c['cover']
-    return news_releases
-
-
 def get_info():
     """get list of releases"""
     return []

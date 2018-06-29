@@ -1,5 +1,6 @@
-from package.normal import normalize_price, normalize_release_date
 import re
+
+from package.normal import normalize_price, normalize_release_date
 
 
 def value_from_xpath(element, xpath):
@@ -30,5 +31,7 @@ def data_from_elem(element, title_xpath, subtitle_xpath=None, release_xpath=None
             }
     return data
 
+
 def remove_redundant_spaces(text):
+    """remove multiple whitespaces with one + strip"""
     return re.sub('\\s+', ' ', text).strip()

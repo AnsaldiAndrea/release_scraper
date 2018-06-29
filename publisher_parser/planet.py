@@ -1,5 +1,4 @@
 """html parser for planet manga releases"""
-from operator import itemgetter
 
 from lxml import html
 from selenium.common.exceptions import TimeoutException
@@ -70,6 +69,7 @@ def parse_releases(driver, data):
 
 
 def check_reprint(elem, item):
+    """check if item is a reprint"""
     reprint = elem.xpath(".//h5[@class='reprint']")
     if reprint:
         if item['subtitle']:
@@ -78,67 +78,8 @@ def check_reprint(elem, item):
             item['subtitle'] = "Ristampa"
 
 
-def get_info(driver, m, title, search, alias, ignore):
-    """get all releases for a planetmanga manga"""
-    normal_title = normalize_title(title)
-    normal_alias = normalize_titles(alias)
-    titles = [normal_title, normal_alias]
-    ignore = normalize_titles(ignore)
-    driver.get("http://comics.panini.it/store/pub_ita_it/catalogsearch/result/?q={}".format(search))
-    next_page_x = "//a[@class='next i-next']"
-    data = []
-    while True:
-        items_x = "//div[@id='products-list']/div"
-        items = wait_for_elements(driver, items_x)
-        for item in items:
-            value = {'id': m['id'], 'publisher': 'planet'}
-            elem = html.fromstring(item.get_attribute('innerHTML'))
-            title_raw = xpath.value_from_xpath(elem, "//h3[@class='product-name']/a/@title")
-            normal_title_raw = normalize_title(title_raw)
-            if normal_title_raw not in titles:
-                continue
-            title_volume = clear_string(xpath.value_from_xpath(elem, "//h3[@class='product-name']/a/text()"))
-            try:
-                volume = int(re.sub(title_raw, '', title_volume).strip())
-                value['volume'] = volume
-            except ValueError:
-                continue
-            subtitle = xpath.value_from_xpath(elem, "//small[@class='subtitle lightText']/text()")
-            value['subtitle'] = clear_string(subtitle)
-
-            # if title or subtitle is blacklisted ignore item
-            if normal_title_raw in ignore or normalize_title(value['subtitle']) in ignore:
-                continue
-
-            value['cover'] = xpath.value_from_xpath(elem, "//a[@class='product-image']/img/@src").replace(
-                'small_image/200x',
-                'image')
-            release_date = xpath.value_from_xpath(elem, "//h4[@class='publication-date']/text()")
-            value['release_date'] = datetime.strptime(release_date, '%d/%m/%Y')
-            price_elem = xpath.value_from_xpath(elem, "//p[@class='special-price']/span/text()")
-            if price_elem:
-                value['price'] = normalize_price(price_elem)
-            else:
-                price_elem = xpath.value_from_xpath(elem, "//p[@class='price']/span/text()")
-                value['price'] = normalize_price(price_elem) if price_elem else '0'
-
-            data.append(value)
-
-        next_page = element_exist(driver, next_page_x)
-        if next_page:
-            next_page.click()
-        else:
-            break
-
-    release_list = sorted(data, key=itemgetter('release_date'))
-    return release_list
-
-
-def new_get_info(driver, _id, title, search, alias, ignore):
-    normal_title = normalize_title(title)
-    titles = normalize_titles(alias)
-    titles.append(normal_title)
-    ignore = normalize_titles(ignore)
+def get_releases(driver, search):
+    """get raw releases from search term"""
     driver.get("http://comics.panini.it/store/pub_ita_it/catalogsearch/result/?q={}".format(search))
     releases = []
     while True:
@@ -146,11 +87,9 @@ def new_get_info(driver, _id, title, search, alias, ignore):
         for item in items:
             elem = html.fromstring(item.get_attribute('innerHTML'))
             values = parse_search_item(elem)
-            normalized_title = normalize_title(values.pop('title', None))
-            if normalized_title in titles and normalized_title not in ignore and normalize_title(values['subtitle']) not in ignore:
-                values['id'] = _id
-                values['publisher'] = 'planet'
-                releases.append(values)
+            check_reprint(elem, values)
+            values['publisher'] = 'planet'
+            releases.append(values)
         next_page = element_exist(driver, "//a[@class='next i-next']")
         if next_page:
             next_page.click()
@@ -158,26 +97,17 @@ def new_get_info(driver, _id, title, search, alias, ignore):
             return releases
 
 
-def clear_string(string):
-    """removes excessive white spaces from string"""
-    return re.sub('\\s+', ' ', string)
-
-
 def parse_search_item(element):
-    title = xpath.value_from_xpath(element, title_search_x)
+    """parse single search item"""
     values = xpath.data_from_elem(element,
                                   title_xpath=title_volume_search_x,
                                   subtitle_xpath=subtitle_search_x,
                                   release_xpath=release_date_search_x,
                                   price_xpath=special_price_search_x,
                                   cover_xpath=cover_search_x)
-    volume = re.sub(title, '', values.pop('title_volume', None)).strip()
-    values['volume'] = int(volume) if volume else 1
-    values['title'] = title
     if not values['price']:
         values['price'] = normalize_price(xpath.value_from_xpath(element, price_search_x))
         if not values['price']:
             values['price'] = "0"
-    values['release_date'] = datetime.strptime(values['release_date'], '%Y-%m-%d')
     values['cover'] = values['cover'].replace('small_image/200x', 'image')
     return values

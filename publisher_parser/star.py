@@ -103,12 +103,28 @@ def get_info(driver, _id, title, search):
     return releases
 
 
+def get_releases(driver, search):
+    driver.get("https://www.starcomics.com/fumettoricerca.aspx?titolo={}".format(search))
+    releases = []
+    if not element_exist(driver, '//td[text(), "Nessun risultato"]'):
+        page_counter = wait_for_element(driver, '//td[@class="pager-count"]/span')
+        page_count = re.search("Pag\\.\\s+\\d+\\s+di\\s+(\\d+)", page_counter.text).group(1)
+        for i in range(0, int(page_count)):
+            i_page_active_x = '(//td[contains(@class,"pager-item")])[{}]'.format(get_active_page_numer(i + 1))
+            wait_for_class_change(driver, i_page_active_x, 'active')
+            content = wait_for_element(driver, '//div[@class="content clearfix"]')
+            releases.append(new_parse_search_info(content.get_attribute("innerHTML"), driver))
+            wait_and_click(driver, '//td[@class="pager-next"]/a[1]')
+    return releases
+
+
 def get_active_page_numer(n):
     if n % 10 == 0:
         return 10
     return n % 10
 
 
+@DeprecationWarning
 def parse_search_results(_html, _id, data, title):
     content = html.fromstring(_html)
     items = content.xpath('//table//table/tbody/tr/td')
@@ -133,6 +149,30 @@ def parse_search_results(_html, _id, data, title):
     return link
 
 
+def new_parse_search_info(_html, driver):
+    releases = []
+    content = html.fromstring(_html)
+    items = content.xpath('//table//table/tbody/tr/td')
+    link = ""
+    for item in items:
+        if not item.xpath(title_search_x):
+            return link
+        item_values = data_from_elem(item,
+                                     title_xpath=title_search_x,
+                                     release_xpath=release_x,
+                                     cover_xpath=cover_x)
+        item_values['cover'] = "https://www.starcomics.com/{}".format(item_values['cover'])
+        item_values['publisher'] = 'star'
+        releases.append(item_values)
+        if not link:
+            link = item.xpath(link_x)[0]
+    price = get_price(driver, link)
+    for r in releases:
+        r['price'] = price
+    return releases
+
+
+@DeprecationWarning
 def set_title_volume(data):
     r = re.match('(.+)\\s[N|n]\\.\\s(\\d+)|(?i)(.+)\\svolume unico', data.pop('title_volume', None))
     if r.group(1):

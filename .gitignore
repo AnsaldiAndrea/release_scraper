@@ -1,7 +1,9 @@
 # Personal Files
-data/*
 input.json
-scratch.py
+/titles_test
+*.db
+/data
+test.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
